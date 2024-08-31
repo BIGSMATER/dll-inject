@@ -2,12 +2,21 @@
 #include <TlHelp32.h> 
 #include <comdef.h>
 #include<iostream>
+#ifndef _WIN64
 Inject::Inject(char* p,char* d)
 {
 	pPath = p;
 	dPath = d;
 	pid = 0;
 }
+#else
+Inject::Inject(char* p, WCHAR* d)
+{
+	pPath = p;
+	dPath = d;
+	pid = 0;
+}
+#endif
 DWORD Inject::GetTargetProcessId()
 {
 	HANDLE hsnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -39,8 +48,15 @@ void Inject::DLLInject()
 {
 	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);//获取目标进程句柄
 	LPVOID Address = VirtualAllocEx(hProcess, NULL, 0x100, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);//在目标进程申请地址存dll路径名
+#ifndef _WIN64
 	FARPROC pfnStartAssr = GetProcAddress(GetModuleHandle(TEXT("Kernel32")), "LoadLibraryA");//LoadLibraryW地址
-	size_t pNameLong= strlen(dPath)+1;
+	size_t pNameLong = strlen(dPath) + 1;
+#else
+	FARPROC pfnStartAssr = GetProcAddress(GetModuleHandle(TEXT("Kernel32")), "LoadLibraryW");//LoadLibraryW地址
+	size_t pNameLong = (wcslen(dPath) + 1) * sizeof(wchar_t);
+
+#endif
+	
 	WriteProcessMemory(hProcess, Address, dPath, pNameLong, NULL);
 	HANDLE hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, (PTHREAD_START_ROUTINE)pfnStartAssr, Address, 0, NULL);
 	WaitForSingleObject(hRemoteThread, -1);

@@ -10,8 +10,16 @@ int main(int argc, char* argv[])
 	//}
 	//Inject inject(argv[1],argv[2]);
 
-	char pPath[200],  dPath[200];
-	std::cin >> pPath>>dPath;
+	char pPath[200];
+	std::cin >> pPath;
+#ifndef _WIN64
+	char dPath[200];
+	std::cin >> dPath;
+#else
+	WCHAR dPath[200];
+	std::wcin >> dPath;
+#endif
+	
 	Inject inject(pPath, dPath);
 	DWORD pid = inject.GetTargetProcessId();
 	if (!pid)
